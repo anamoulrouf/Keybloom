@@ -1,5 +1,5 @@
 // Keybloom build: bundle src/main.js into one IIFE and inline it, with src/styles.css and the
-// bundled OFL fonts (base64), into src/index.html → dist/keybloom.html.
+// bundled OFL fonts (base64), into src/index.html → dist/keybloom.html (+ dist/index.html for static hosts).
 // The output is a single self-contained file that works offline (pattern borrowed from Gridforge).
 import { build } from 'esbuild';
 import { readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
@@ -40,6 +40,7 @@ const html = tpl
 
 mkdirSync('dist', { recursive: true });
 writeFileSync('dist/keybloom.html', html);
+writeFileSync('dist/index.html', html); // hosts like Vercel serve index.html at /
 const kb = (statSync('dist/keybloom.html').size / 1024).toFixed(0);
 console.log(`dist/keybloom.html  ${kb} KB${dev ? ' (dev)' : ''}`);
 if (kb > 1536) throw new Error('Build is over the 1.5 MB budget');
