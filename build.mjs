@@ -27,6 +27,7 @@ const fonts = [
   face('Atkinson Hyperlegible', 'atkinson-hyperlegible', 'atkinson-hyperlegible-latin-700-normal.woff2', 700),
   face('OpenDyslexic', 'opendyslexic', 'opendyslexic-latin-400-normal.woff2', 400),
   face('OpenDyslexic', 'opendyslexic', 'opendyslexic-latin-700-normal.woff2', 700),
+  face('Amiri Quran', 'amiri-quran', 'amiri-quran-arabic-400-normal.woff2', 400),
 ].join('\n');
 
 const js = result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script');

@@ -11,6 +11,7 @@ import { ensureRequests } from '../core/requests.js';
 import { unlockedKeys, KEY_GROUPS } from '../core/adaptive.js';
 import { WHISPERS, SECRET_WORDS } from '../data/garden-words.js';
 import { listProfiles } from './save.js';
+import { islamicNext } from '../modes/islamic.js';
 
 function mount(game, html, wire) {
   const root = el(html);
@@ -142,6 +143,7 @@ export function homeScreen(game) {
         ${tile('words', 'words', 'Garden Words', 'type it, grow it')}
         ${tile('story', 'stories', 'Story Seeds', 'type a story page')}
         ${tile('greenhouse', 'greenhouse', 'Greenhouse', 'numbers and sums')}
+        ${tile('islamic', 'islamic', 'Islamic Life', 'Names of Allah, Quran, duas')}
       </div>
       <details class="requests" ${req.list.some((r) => !r.done) ? 'open' : ''}><summary><b>Pip's Requests</b> <small>this week</small></summary>
         <ul>${req.list.map((r) => `<li class="${r.done ? 'done' : ''}"><span class="check small" aria-hidden="true"></span>${esc(r.text)} <small>${r.done ? 'done!' : `${r.progress}/${r.goal}`}</small></li>`).join('')}</ul>
@@ -225,21 +227,27 @@ export function resultsScreen(game, { run, report, pip }) {
   if (report.page != null) notes.push('You found a lost <b>journal page</b>!');
   if (run.bestChain >= 5) notes.push(`Longest bloom chain: <b>${run.bestChain}</b> clean words.`);
   if (run.bonusDew) notes.push(`Weather bonus: <b>+${Math.round(run.bonusDew)}</b> dewdrops.`);
-  const title = TITLES[run.mode] || 'Nicely done!';
+  const islamicTitle = run.mode === 'islamic' ? (run.track === 'quran' ? 'Surah complete' : run.track === 'duas' ? (report.islamic?.done ? 'Dua complete' : 'Part complete') : 'Lesson complete') : null;
+  const title = islamicTitle || TITLES[run.mode] || 'Nicely done!';
+  const islNext = run.mode === 'islamic' ? islamicNext(p, run) : null;
   const nb = nextBed(p);
-  const primary = run.mode === 'garden' && report.firstBedClear
+  const primary = run.mode === 'islamic'
+    ? (islNext ? `<button class="btn primary" data-go="islamic-lesson" ${args(islNext.args)}>${islNext.label}</button>` : '<button class="btn primary" data-go="islamic">Back to Islamic Life</button>')
+    : run.mode === 'garden' && report.firstBedClear
     ? `<button class="btn primary" data-go="garden" ${args(nb)}>Next bed</button>`
     : run.mode === 'story' && !run.storyEnd
       ? `<button class="btn primary" data-go="story" ${args({ id: run.story, page: run.pageReached })}>Next page</button>`
       : `<button class="btn primary" data-go="home">Back to the garden</button>`;
   const again = run.mode === 'garden' ? `<button class="btn" data-go="garden" ${args({ season: run.season, bed: run.bed })}>Play again</button>`
     : run.mode === 'race' ? '<button class="btn" data-go="race">Race again</button>'
-      : run.mode === 'story' ? '<button class="btn" data-go="stories">All stories</button>' : '';
+      : run.mode === 'story' ? '<button class="btn" data-go="stories">All stories</button>'
+        : run.mode === 'islamic' && islNext ? '<button class="btn" data-go="islamic">Islamic Life</button>' : '';
   return mount(game, `<section class="screen center" aria-label="Results">
     <div class="card results">
       <h2>${title}</h2>
       ${run.mode === 'garden' ? `<div class="big-flowers" aria-label="${report.flowers} of 3 flowers">${flowerIcons(report.flowers)}</div>` : ''}
       ${run.mode === 'story' ? `<blockquote class="story-page">${esc(run.storyText)}</blockquote>` : ''}
+      ${run.mode === 'islamic' ? `<blockquote class="story-page isl-read"><b>${esc(run.readTitle)}</b><br>${esc(run.readBack)}</blockquote>` : ''}
       <div class="res-grid">
         <figure class="speed-stem" aria-label="Speed ${run.wpm} words per minute">
           <svg viewBox="0 0 80 190" aria-hidden="true">

@@ -13,7 +13,8 @@ import { sparkle, puff } from '../scene/particles.js';
  * opts: { mode, title, subtitle, nextLine(i) → string|null, seconds?, keyboard: true|false|'stage',
  *         recordStats?: true, onDone(summary), extraButton?: { label, onClick },
  *         keys?: [chars for the keyboard], fixTypos?, trackHTML?, onProgress?(state),
- *         onTick?(dt, now, state), onLine?(index), learner? (whose stats to record) }
+ *         onTick?(dt, now, state), onLine?(index), learner? (whose stats to record),
+ *         lineHeader?(index) → html shown above each line (e.g. Arabic text, read only) }
  */
 export function lineRunner(game, opts) {
   const { profile, audio } = game;
@@ -34,6 +35,7 @@ export function lineRunner(game, opts) {
         <button class="icon-btn" data-act="pause" aria-label="Pause">❚❚</button></header>
       ${opts.seconds ? '<div class="drain" aria-hidden="true"><div class="drain-fill"></div></div>' : '<div class="dots" aria-hidden="true"></div>'}
       ${opts.trackHTML || ''}
+      ${opts.lineHeader ? '<div class="line-header"></div>' : ''}
       <div class="line-slot"></div>
       <div class="kb-slot"></div>
       ${opts.extraButton ? `<button class="btn ghost small" data-act="extra">${esc(opts.extraButton.label)}</button>` : ''}
@@ -57,6 +59,7 @@ export function lineRunner(game, opts) {
     const text = opts.nextLine(lineIndex);
     if (text == null) return finish();
     line = createLine(text, { fixTypos: !!opts.fixTypos });
+    if (opts.lineHeader) root.querySelector('.line-header').innerHTML = opts.lineHeader(lineIndex) || '';
     lineClean = true;
     view.setText(text);
     kb?.setNext(text[0]);

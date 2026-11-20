@@ -67,6 +67,7 @@ export function features(profile) {
     words: { open: seasonOpen(profile, 'summer'), why: 'Opens in Summer.' },
     story: { open: allLetters(profile) || seasonOpen(profile, 'winter'), why: 'Opens when you have every letter.' },
     greenhouse: { open: allLetters(profile), why: 'Opens when you have every letter.' },
+    islamic: { open: allLetters(profile), why: 'Opens when you have every letter.' },
   };
   return f;
 }
@@ -201,6 +202,7 @@ export function finishRun(profile, run, today, rng = mulberry32((today * 9973 + 
       report.ending = true;
     }
   }
+  if (run.mode === 'islamic') report.islamic = recordIslamic(profile, run);
   if (run.mode === 'lesson') {
     markDone(profile, 'lesson', today);
     events.push({ kind: 'lesson' });
@@ -222,6 +224,23 @@ export function finishRun(profile, run, today, rng = mulberry32((today * 9973 + 
   profile.dewdrops += report.dew;
   for (const id of report.planted) if (!profile.almanac.includes(id)) profile.almanac.push(id);
   return report;
+}
+
+/**
+ * Islamic Life progress. run.track: 'names' (run.lesson = group index), 'quran' (run.lesson = surah
+ * number) or 'duas' (run.lesson = dua id, run.part = part index, run.parts = how many parts).
+ * Returns { track, lesson, done } where done is true when the lesson (or the whole dua) is complete.
+ */
+export function recordIslamic(profile, run) {
+  const s = (profile.islamic ||= { names: [], quran: {}, duas: {} });
+  const out = { track: run.track, lesson: run.lesson, done: true };
+  if (run.track === 'names' && !s.names.includes(run.lesson)) s.names.push(run.lesson);
+  if (run.track === 'quran') s.quran[run.lesson] = true;
+  if (run.track === 'duas') {
+    s.duas[run.lesson] = Math.max(s.duas[run.lesson] || 0, (run.part ?? 0) + 1);
+    out.done = s.duas[run.lesson] >= run.parts;
+  }
+  return out;
 }
 
 /** Which visitors the home garden attracts right now. */

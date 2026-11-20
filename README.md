@@ -35,6 +35,12 @@ take turns; each races their own usual speed, so a parent and a child are evenly
 Almanac), **Story Seeds** (9 original stories; typos are fixed with Backspace; every page grows
 the storybook tree), **Greenhouse** (numbers and small sums).
 
+**Islamic Life** (opens once every letter is learned): type the 99 Names of Allah with their
+meanings (20 lessons), the English meaning of Al-Fatiha and surahs 105–114 (Saheeh International)
+with the Arabic verse shown above each line (Uthmani text via quran.com, Amiri Quran font), and
+29 beautiful supplications typed one part at a time. Typos must be fixed; the chapter has no music,
+only nature sounds and soft clicks. Arabic is for reading only and is never typed.
+
 **Between sessions**: plants grow one stage per day; mystery seed packets (for a bed's first
 3 flowers, or all three of Pip's weekly Requests) reveal themselves when they bloom; 8 animal
 visitors come for what you grow; Seed Almanac (35 plants); dewdrop shop; Garden Postcard (PNG).

@@ -49,6 +49,7 @@ export function createProfile(today = dayNumber()) {
     secretsFound: [],
     notes: [],
     races: { won: 0, run: 0 },
+    islamic: { names: [], quran: {}, duas: {} },
   };
 }
 
@@ -59,6 +60,7 @@ export function upgradeProfile(raw) {
   p.settings = { ...fresh.settings, ...(raw.settings || {}) };
   p.learner = { ...fresh.learner, ...(raw.learner || {}) };
   p.progress = { ...fresh.progress, ...(raw.progress || {}) };
+  p.islamic = { ...fresh.islamic, ...(raw.islamic || {}) };
   if (!raw.id) p.id = newId();
   return p;
 }

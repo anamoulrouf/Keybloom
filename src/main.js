@@ -20,6 +20,7 @@ import { storiesScreen, storyMode } from './modes/story.js';
 import { sandboxMode } from './modes/sandbox.js';
 import { harvestMode } from './modes/harvest.js';
 import { greenhouseMode } from './modes/greenhouse.js';
+import { islamicScreen, islamicLesson } from './modes/islamic.js';
 import {
   titleScreen, welcomeScreen, sitScreen, homeScreen, mapScreen, resultsScreen,
   almanacScreen, journalScreen, shopScreen, settingsScreen, endingScreen, touchScreen,
@@ -79,6 +80,8 @@ const SCREENS = {
   words: () => sandboxMode(game),
   harvest: (args) => harvestMode(game, args),
   greenhouse: () => greenhouseMode(game),
+  islamic: (args) => islamicScreen(game, args),
+  'islamic-lesson': (args) => islamicLesson(game, args),
   results: (args) => resultsScreen(game, args),
   almanac: () => almanacScreen(game),
   journal: () => journalScreen(game),
@@ -95,6 +98,8 @@ function go(name, args = {}) {
   currentName = name;
   document.body.dataset.screen = name;
   if (name !== 'visit') restoreOwnGarden();
+  // Islamic Life is calm and music-free: only nature sounds and soft clicks.
+  audio.setQuiet(name.startsWith('islamic') || (name === 'results' && args.run?.mode === 'islamic'));
   current = SCREENS[name](args);
   if (!current?.isPlay && name !== 'harvest') scene.setWeather(null);
   if (name === 'home') homeGreeting();
@@ -238,7 +243,8 @@ function finish(run) {
   if (breakMs && !breakNudged && playMsThisSession > breakMs) {
     breakNudged = true;
     pip = 'You have been typing for a while. Time to stretch your fingers and sip some water!';
-  } else if (run.mode === 'race') pip = run.won ? 'The bee is buzzing about your race. Happily.' : 'The bee was quick today. It only knows your best run, so it is really you you are racing.';
+  } else if (run.mode === 'islamic') pip = null;
+  else if (run.mode === 'race') pip = run.won ? 'The bee is buzzing about your race. Happily.' : 'The bee was quick today. It only knows your best run, so it is really you you are racing.';
   else if (run.accuracy >= 0.95) pip = 'Neat as a row of seedlings. Lovely.';
   else if (run.accuracy < 0.85) pip = 'Slow and careful wins in the garden. Try finding the bump on F again.';
   if (report.ending) return go('ending');

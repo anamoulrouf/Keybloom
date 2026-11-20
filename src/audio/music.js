@@ -36,6 +36,7 @@ export function createAudio() {
   let keyStep = 0;
   let natureNodes = null;
   let birdTimer = null;
+  let quiet = false; // Islamic Life chapter: no music or melodic notes, only nature and soft clicks
 
   function ensure() {
     if (ctx) return ctx;
@@ -74,7 +75,7 @@ export function createAudio() {
     if (!ctx) return;
     const t = ctx.currentTime;
     master.gain.setTargetAtTime(settings.muted ? 0 : settings.master, t, 0.05);
-    music.gain.setTargetAtTime(settings.music * 0.9, t, 0.1);
+    music.gain.setTargetAtTime(quiet ? 0 : settings.music * 0.9, t, quiet ? 0.5 : 0.1); // ≈1.5 s fade
     sfx.gain.setTargetAtTime(settings.sfx, t, 0.05);
     nature.gain.setTargetAtTime(settings.natureOn ? settings.nature : 0, t, 0.3);
   }
@@ -254,6 +255,21 @@ export function createAudio() {
     birdTimer = setTimeout(birds, 2500);
   }
 
+  /** A short wooden click (no pitch), used in quiet mode. */
+  function click(peak, freq) {
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer(0.05);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = freq;
+    bp.Q.value = 4;
+    const g = ctx.createGain();
+    src.connect(bp).connect(g).connect(sfx);
+    env(g, t, 0.002, peak, 0.04);
+    src.start(t);
+  }
+
   return {
     LAYER_THRESHOLDS,
     settings,
@@ -282,6 +298,13 @@ export function createAudio() {
       apply();
     },
 
+    /** Quiet mode: music fades out, typing makes a soft click instead of a note, no bells. */
+    setQuiet(on) {
+      quiet = !!on;
+      apply();
+    },
+    isQuiet: () => quiet,
+
     /** Bloom chain drives the music layers. */
     setChain(n) {
       const prev = chain;
@@ -300,6 +323,7 @@ export function createAudio() {
     /** Correct key: a marimba note from the current chord, stepping upward like an arpeggio. */
     keyNote() {
       if (!ctx) return;
+      if (quiet) return click(0.07, 1900);
       const chord = currentChord();
       const tones = [...chord.tones, ...chord.tones.map((m) => m + 12)];
       const m = tones[keyStep % tones.length];
@@ -311,6 +335,7 @@ export function createAudio() {
     /** Wrong key: a soft wooden "tok", no buzzer. */
     tok() {
       if (!ctx) return;
+      if (quiet) return click(0.11, 650);
       const t = ctx.currentTime;
       const src = ctx.createBufferSource();
       src.buffer = noiseBuffer(0.08);
@@ -327,6 +352,7 @@ export function createAudio() {
     /** Word complete: a soft pop plus a chime on the chord. */
     pop() {
       if (!ctx) return;
+      if (quiet) return click(0.08, 1200);
       const t = ctx.currentTime;
       const o = ctx.createOscillator();
       const g = ctx.createGain();
@@ -343,7 +369,7 @@ export function createAudio() {
 
     /** Bloom wave / celebration: a rising arpeggio. */
     sparkle(n = 8) {
-      if (!ctx) return;
+      if (!ctx || quiet) return;
       const t = ctx.currentTime;
       const chord = currentChord();
       for (let i = 0; i < n; i++) {
@@ -353,7 +379,7 @@ export function createAudio() {
     },
 
     chime() {
-      if (!ctx) return;
+      if (!ctx || quiet) return;
       const t = ctx.currentTime;
       bell(midi(77), t, 0.06, sfx);
       bell(midi(84), t + 0.12, 0.05, sfx);

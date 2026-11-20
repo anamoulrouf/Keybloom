@@ -12,7 +12,9 @@ export function createLineView(container) {
   return {
     el: box,
     setText(text) {
-      box.innerHTML = [...text].map(charHTML).join('') + '<span class="typos"></span>';
+      // Letters are grouped into words that never break across lines (only spaces can wrap).
+      const html = text.split(/( )/).filter((t) => t !== '').map((t) => (t === ' ' ? charHTML(' ') : `<span class="w">${[...t].map(charHTML).join('')}</span>`)).join('');
+      box.innerHTML = html + '<span class="typos"></span>';
       spans = [...box.querySelectorAll('.ch')];
       typoEl = box.querySelector('.typos');
       this.setPos(0);
