@@ -15,6 +15,10 @@ import { RARE_IDS, BY_ID } from '../data/species.js';
 import { COMPOST, BED_Y } from '../scene/scene.js';
 import { puff, sparkle, flySeed } from '../scene/particles.js';
 import { el, esc } from '../ui/dom.js';
+import { createKeyboard } from '../scene/keyboard-hint.js';
+import { starsFor, cheerWord } from '../core/stars.js';
+import { cheer } from '../ui/cheer.js';
+import { pickSentence, dress } from '../core/sentences.js';
 
 const PACE = { calm: 1.4, normal: 1, breezy: 0.8 };
 export const EVENT_EVERY_MS = 5 * 60 * 1000;
@@ -23,11 +27,12 @@ const EVENTS = {
   fireflies: { name: 'Firefly Night', secs: 40, tip: 'The fireflies are carrying words. Each one is worth extra dewdrops.' },
   wind: { name: 'Windy Day', secs: 40, tip: 'Dandelion seeds are dancing on the wind. Catch them as they swirl!' },
 };
-const LANES = [230, 300, 370, 440, 505];
+const LANES = [190, 250, 310, 370, 430]; // kept above the docked keyboard
 
 const OBJECT_ART = {
   packet: (c) => `<svg viewBox="0 0 40 48" aria-hidden="true"><path d="M4 6 h32 v38 h-32Z" fill="#FBF3E2" stroke="#D9C6A5" stroke-width="2"/><path d="M4 6 l4 -4 h24 l4 4" fill="#EADBC0"/><circle cx="20" cy="24" r="9" fill="${c}"/><path d="M20 33 v7" stroke="#6E9E62" stroke-width="2.5"/></svg>`,
   can: () => `<svg viewBox="0 0 48 40" aria-hidden="true"><path d="M8 14 h22 v22 h-22Z" fill="#9EC3D6"/><path d="M30 18 l14 -10 l2 4 l-14 12" fill="#9EC3D6"/><path d="M12 14 q7 -12 14 0" stroke="#7FA7BD" stroke-width="3" fill="none"/></svg>`,
+  sentence: () => `<svg viewBox="0 0 60 40" aria-hidden="true"><path d="M10 22 q10 -16 20 0 q10 -16 20 0" stroke="#66756A" stroke-width="3.5" fill="none" stroke-linecap="round"/><path d="M30 22 v12" stroke="#C79A72" stroke-width="2"/></svg>`,
   golden: () => `<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="#FFF3C4" opacity=".7"/><ellipse cx="20" cy="21" rx="9" ry="12" fill="#F2C14E"/><path d="M20 9 q4 -6 9 -5" stroke="#6E9E62" stroke-width="2.5" fill="none"/></svg>`,
   firefly: () => `<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#FFF7B8" opacity=".55"/><circle cx="20" cy="22" r="7" fill="#FFF09A"/><ellipse cx="14" cy="14" rx="6" ry="4" fill="#EAF4FB" opacity=".9"/><ellipse cx="26" cy="14" rx="6" ry="4" fill="#EAF4FB" opacity=".9"/><circle cx="20" cy="14" r="4" fill="#5C5248"/></svg>`,
   dandelion: () => `<svg viewBox="0 0 40 48" aria-hidden="true">${Array.from({ length: 12 }, (_, i) => `<path d="M20 18 l0 -14" stroke="#E9E4DA" stroke-width="1.4" transform="rotate(${i * 30} 20 18)"/><circle cx="20" cy="4" r="2.2" fill="#FFFDF6" transform="rotate(${i * 30} 20 18)"/>`).join('')}<path d="M20 18 v28" stroke="#C9C2B6" stroke-width="1.5"/></svg>`,
@@ -82,12 +87,52 @@ export function gardenMode(game, { season: seasonId, bed: bedIndex }) {
       </div>
     </header>
     <div class="drift-layer"></div>
-    <p class="play-tip">Type a word to plant it. <kbd>Backspace</kbd> lets go of a word. <kbd>Esc</kbd> pauses.</p>
+    <p class="play-tip">Type a word to plant it. <kbd>Backspace</kbd> lets go. <kbd>Esc</kbd> pauses.</p>
+    <div class="garden-kb"></div>
   </section>`);
   game.app.appendChild(root);
   const layer = root.querySelector('.drift-layer');
   root.querySelector('[data-act="pause"]').addEventListener('click', () => game.pauseMenu());
   setTimeout(() => root.querySelector('.play-tip')?.classList.add('fade'), 6000);
+
+  // The keyboard stays docked below the garden (hide it in Settings).
+  const kb = profile.settings.keyboard === 'hide' ? null : createKeyboard(root.querySelector('.garden-kb'));
+  if (kb) {
+    kb.setStage(Math.min(1, learner.hintStage));
+    kb.setUnlocked([...unlockedKeys(learner), ...(winter ? ['shift', ',', '.', "'", '/', '1'] : [])]);
+  }
+  let kbSig = '';
+  function updateKb() {
+    if (!kb) return;
+    const locked = field.locked;
+    const next = locked ? locked.text[locked.pos] : null;
+    const hints = locked ? [] : [...objects.values()].map((o) => o.target.text[0]);
+    const sig = `${next}|${hints.join('')}`;
+    if (sig === kbSig) return;
+    kbSig = sig;
+    kb.setNext(next);
+    kb.setHints(hints);
+  }
+
+  // A sentence every 7–10 planted words, built from words the child just planted.
+  const plantedWords = [];
+  const sentence = { due: false, active: false, at: 7 + Math.floor(rng() * 4), used: new Set() };
+  function spawnSentence() {
+    const raw = pickSentence(rng, learner, { related: plantedWords.slice(-10), avoid: sentence.used });
+    if (!raw) { sentence.due = false; return; }
+    sentence.used.add(raw);
+    const text = winter ? raw[0].toUpperCase() + raw.slice(1) + '.' : dress(raw, learner);
+    const t = addTarget(field, text, { clean: true });
+    const wordsHTML = text.split(/( )/).filter((x) => x !== '').map((w) => (w === ' ' ? '<span class="ch sp">&nbsp;</span>' : `<span class="w">${[...w].map((c) => `<span class="ch">${esc(c)}</span>`).join('')}</span>`)).join('');
+    const node = el(`<div class="drifter sentence" role="img" aria-label="${esc(text)}"><span class="obj">${OBJECT_ART.sentence()}</span><span class="word">${wordsHTML}</span></div>`);
+    layer.appendChild(node);
+    const b = bounds();
+    const v = scene.visibleX();
+    objects.set(t.id, { el: node, x: b.left, startX: b.left, lane: 300, y: 300, speed: 0, phase: 0, kind: 'sentence', word: text, target: t, wave: 6, stopX: (v.left + v.right) / 2 });
+    sentence.active = true;
+    sentence.due = false;
+    game.say('Here comes a sentence! Some of its words are ones you just planted.', 3200);
+  }
 
   const fill = root.querySelector('.can-fill');
   function updateHud() {
@@ -252,6 +297,22 @@ export function gardenMode(game, { season: seasonId, bed: bedIndex }) {
     if (o.kind === 'firefly') bonusDew += 2;
     if (o.kind === 'dandelion') bonusDew += 1;
     const clean = o.target.clean;
+    {
+      const b = o.el.getBoundingClientRect();
+      const big = o.kind === 'sentence';
+      const stars = starsFor(big ? 'sentence' : 'word', clean);
+      game.addStars(stars);
+      cheer({ text: cheerWord(rng, big), stars, big, x: b.left + b.width / 2, y: b.top - 6 });
+    }
+    if (o.kind === 'sentence') {
+      sentence.active = false;
+      sentence.at = planted + 7 + Math.floor(rng() * 4);
+      audio.pop();
+      o.el.classList.add('picked');
+      setTimeout(() => o.el.remove(), 350);
+      bloomWave();
+      return;
+    }
     chain = clean ? chain + 1 : 0;
     bestChain = Math.max(bestChain, chain);
     audio.setChain(chain);
@@ -272,6 +333,8 @@ export function gardenMode(game, { season: seasonId, bed: bedIndex }) {
     }
     const slot = planted;
     planted++;
+    plantedWords.push(o.word);
+    if (planted >= sentence.at && planted < totalWords) sentence.due = true;
     const x = bedSlotX(slot);
     const to = scene.toScreen(x, BED_Y);
     flySeed(fx, fy, to.x, to.y).then(() => {
@@ -384,11 +447,14 @@ export function gardenMode(game, { season: seasonId, bed: bedIndex }) {
       }
       spawnTimer -= dt;
       const words = [...objects.values()].filter((o) => o.kind !== 'drop').length;
-      const want = !raining && (words === 0 || (spawnTimer <= 0 && words < maxOnScreen()));
+      if (sentence.due && !raining && words === 0) spawnSentence();
+      const holdForSentence = sentence.due || sentence.active;
+      const want = !raining && !holdForSentence && (words === 0 || (spawnTimer <= 0 && words < maxOnScreen()));
       if (want && planted + words < totalWords + (golden.spawned && !golden.caught ? 1 : 0) + 1) {
         if (spawn()) spawnTimer = spawnInterval();
         else spawnTimer = 0.5;
       }
+      updateKb();
       const b = bounds();
       for (const o of [...objects.values()]) {
         const lockedHere = field.locked && field.locked.id === o.target.id;
@@ -397,6 +463,15 @@ export function gardenMode(game, { season: seasonId, bed: bedIndex }) {
           o.x += Math.sin(time * 1.3 + o.target.id) * 4 * dt;
           place(o);
           if (o.y > BED_Y - 80) splash(o);
+          continue;
+        }
+        if (o.kind === 'sentence') {
+          // The sentence glides to the middle and waits there until it's typed.
+          o.age = (o.age || 0) + dt;
+          const k = Math.min(1, o.age / 3); // reaches the middle in 3 s, easing in
+          o.x = o.startX + (o.stopX - o.startX) * (1 - (1 - k) ** 3);
+          o.y = o.lane + Math.sin(time * 0.6) * o.wave;
+          place(o);
           continue;
         }
         o.x += o.speed * dt * (lockedHere ? 0.35 : 1); // the word you're typing slows down for you

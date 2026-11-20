@@ -203,6 +203,7 @@ export function finishRun(profile, run, today, rng = mulberry32((today * 9973 + 
     }
   }
   if (run.mode === 'islamic') report.islamic = recordIslamic(profile, run);
+  if (run.mode === 'path') markDone(profile, 'path', today);
   if (run.mode === 'lesson') {
     markDone(profile, 'lesson', today);
     events.push({ kind: 'lesson' });

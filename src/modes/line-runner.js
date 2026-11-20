@@ -8,6 +8,8 @@ import { createKeyboard } from '../scene/keyboard-hint.js';
 import { createLineView } from '../ui/line-view.js';
 import { el, esc } from '../ui/dom.js';
 import { sparkle, puff } from '../scene/particles.js';
+import { starsFor, cheerWord } from '../core/stars.js';
+import { cheer } from '../ui/cheer.js';
 
 /**
  * opts: { mode, title, subtitle, nextLine(i) → string|null, seconds?, keyboard: true|false|'stage',
@@ -47,9 +49,11 @@ export function lineRunner(game, opts) {
 
   const view = createLineView(root.querySelector('.line-slot'));
   let kb = null;
-  if (opts.keyboard !== false) {
+  {
     kb = createKeyboard(root.querySelector('.kb-slot'));
-    kb.setStage(opts.keyboard === 'stage' ? learner.hintStage : 0);
+    // The keyboard stays visible (the child can hide it in Settings): finger colours for
+    // beginners, then plain keys with the next key highlighted.
+    kb.setStage(profile.settings.keyboard === 'hide' ? 2 : opts.keyboard === 'stage' ? Math.min(1, learner.hintStage) : opts.keyboard === false ? 1 : 0);
     kb.setUnlocked(opts.keys || (opts.allKeys ? [...'abcdefghijklmnopqrstuvwxyz;,.\'/', 'shift'] : unlockedKeys(learner)));
   }
   const dots = root.querySelector('.dots');
@@ -111,6 +115,12 @@ export function lineRunner(game, opts) {
           audio.pop();
           const b = view.el.getBoundingClientRect();
           puff(b.right - 20, b.top + b.height / 2, lineClean ? 8 : 4);
+          // Stars and a short "well done" after every line (modes can choose their own reward).
+          const reward = opts.reward ? opts.reward(lineIndex, lineClean, line.text) : { stars: starsFor('line') };
+          if (reward && reward.stars) {
+            game.addStars(reward.stars);
+            cheer({ text: reward.text || cheerWord(Math.random, reward.big), stars: reward.stars, big: reward.big, gentle: opts.mode === 'islamic', x: b.left + b.width / 2, y: b.top - 10 });
+          }
           lineIndex++;
           opts.onLine?.(lineIndex);
           if (!ended) setTimeout(() => { if (!ended) loadLine(); }, 280);

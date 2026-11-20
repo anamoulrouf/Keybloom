@@ -78,6 +78,16 @@ export function createKeyboard(container) {
       const finger = f ? `<i class="dot f-${f}"></i>${FINGER_NAME[f]}` : '';
       wrap.querySelector('.kb-finger').innerHTML = shiftSide ? `Hold <b>Shift</b> with your ${FINGER_NAME[FINGER[shiftSide]]}, then ${finger}` : finger;
     },
+    /** A soft secondary glow on several keys (Garden Play: first letters of the words on screen). */
+    setHints(chars) {
+      wrap.querySelectorAll('.key.hint').forEach((k) => k.classList.remove('hint'));
+      for (const ch of chars || []) {
+        const { key, shift } = keyFor(ch);
+        const k = key ? keyEl(key) : null;
+        if (k) k.classList.add('hint');
+        if (shift && key) keyEl(FINGER[key]?.[0] === 'l' ? 'shiftR' : 'shiftL')?.classList.add('hint');
+      }
+    },
     flash(ch, ok) {
       const k = keyEl(keyFor(ch).key || '');
       if (!k) return;

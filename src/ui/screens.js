@@ -113,53 +113,64 @@ export function homeScreen(game) {
   game.scene.setTime(season.time);
   game.scene.setSeason(season.id);
   game.scene.clearRunBed();
-  const step = (key, title, sub, go, a) => `<li class="${done[key] ? 'done' : ''}"><button class="path-btn" data-go="${go}" ${a ? args(a) : ''}><span class="check" aria-hidden="true"></span><span><b>${title}</b><small>${sub}</small></span></button></li>`;
-  const keys = unlockedKeys(p.learner).filter((k) => /[a-z;,.]/.test(k));
-  const f = features(p);
   const harvest = pendingHarvest(p);
   const hs = harvest && SEASONS.find((s) => s.id === harvest);
-  const tile = (id, go, label, sub) => `<button class="mode-tile ${f[id].open ? '' : 'locked'}" ${f[id].open ? `data-go="${go}"` : 'disabled'} title="${esc(f[id].open ? sub : f[id].why)}"><b>${label}</b><small>${esc(f[id].open ? sub : f[id].why)}</small></button>`;
-  const req = ensureRequests(p, game.today(), new Set(Object.keys(f).filter((k) => f[k].open)));
+  // New keys waiting? Suggest meeting them in a Sprout Lesson first.
+  const groupIdx = p.learner.groupsUnlocked - 1;
+  const newKeys = !(p.lessonsIntroduced || []).includes(groupIdx) ? KEY_GROUPS[groupIdx] : null;
+  const big = (go, label, sub, a, cls = '') => `<button class="home-btn ${cls}" data-go="${go}" ${a ? args(a) : ''}><b>${label}</b><small>${sub}</small></button>`;
   return mount(game, `<section class="screen home" aria-label="Home">
     <div class="home-card card">
-      <header><h2>${esc(p.garden)}</h2><p class="muted">Gardener ${esc(p.name)}</p></header>
-      <h3>Today's Path</h3>
-      <ol class="path">
-        ${step('water', 'Daily Watering', '2 min warm-up', 'daily')}
-        ${step('lesson', 'Sprout Lesson', 'about 4 min', 'lesson')}
-        ${hs ? `<li><button class="path-btn harvest" data-go="harvest" ${args({ season: hs.id })}><span class="check star" aria-hidden="true"></span><span><b>Giant Harvest: ${esc(hs.harvest.name)}</b><small>then the ${esc(hs.harvest.festival)}!</small></span></button></li>` : ''}
-        ${step('play', `Garden Play: ${season.name}, ${BED_NAMES[nb.bed]}`, 'plant a bed of words', 'garden', nb)}
-      </ol>
-      <div class="stats">
-        <span title="Dewdrops"><i class="dew" aria-hidden="true"></i>${p.dewdrops} dewdrops</span>
-        <span title="Days in a row">🌱 ${p.streak.count || 0}-day streak</span>
-        <span title="Target speed">🌻 aiming for ${p.learner.targetWpm} WPM</span>
+      <header class="gardener">
+        <span class="avatar" aria-hidden="true">${esc((p.name || '?')[0].toUpperCase())}</span>
+        <div><h2>${esc(p.name)}</h2><p class="stars-line"><span class="star-big">⭐ ${p.stars || 0}</span><span class="dew-small"><i class="dew" aria-hidden="true"></i>${p.dewdrops}</span></p></div>
+      </header>
+      ${newKeys ? `<button class="new-keys" data-go="lesson">New keys! ${newKeys.map((k) => `<kbd>${esc(k)}</kbd>`).join(' ')} <span>Meet them first</span></button>` : ''}
+      <button class="start-btn" data-go="path" autofocus>${done.path ? 'Type again' : 'Start typing'}<small>words, then a sentence</small></button>
+      <div class="home-grid">
+        ${hs ? big('harvest', `Giant Harvest`, esc(hs.harvest.name), { season: hs.id }, 'gold') : big('garden', 'Garden Play', `${season.name}, ${BED_NAMES[nb.bed]}`, nb)}
+        ${big('daily', 'Daily Watering', done.water ? 'done today' : '2 minutes')}
+        ${big('more', 'More games', 'races, stories, more')}
       </div>
-      <p class="keys-line small">Your keys: ${keys.map((k) => `<kbd>${esc(k)}</kbd>`).join(' ')}</p>
-      <h3>More to grow</h3>
-      <div class="mode-tiles">
-        ${tile('race', 'race', 'Bee Race', 'race your own best run')}
-        ${tile('relay', 'relay', 'Family Relay', 'take turns with someone')}
-        ${tile('words', 'words', 'Garden Words', 'type it, grow it')}
-        ${tile('story', 'stories', 'Story Seeds', 'type a story page')}
-        ${tile('greenhouse', 'greenhouse', 'Greenhouse', 'numbers and sums')}
-        ${tile('islamic', 'islamic', 'Islamic Life', 'Names of Allah, Quran, duas')}
-      </div>
-      <details class="requests" ${req.list.some((r) => !r.done) ? 'open' : ''}><summary><b>Pip's Requests</b> <small>this week</small></summary>
-        <ul>${req.list.map((r) => `<li class="${r.done ? 'done' : ''}"><span class="check small" aria-hidden="true"></span>${esc(r.text)} <small>${r.done ? 'done!' : `${r.progress}/${r.goal}`}</small></li>`).join('')}</ul>
-        <p class="small muted">Each one is worth 15 dewdrops. All three: a mystery seed. No rush, ever.</p>
-      </details>
-      <nav class="home-nav">
-        <button class="btn" data-go="map">Garden map</button>
-        <button class="btn" data-go="almanac">Almanac</button>
-        <button class="btn" data-go="journal">Journal${p.journalPages ? ` (${p.journalPages})` : ''}</button>
-        <button class="btn" data-go="shop">Shop</button>
-        <button class="btn" data-act="postcard">Postcard</button>
-        ${listProfiles().profiles.filter((x) => x.onboarded && x.id !== p.id).length ? '<button class="btn" data-go="visit">Visit a garden</button>' : ''}
-        <button class="btn" data-go="settings">Settings</button>
+      <nav class="home-icons" aria-label="Garden">
+        <button data-go="map" aria-label="Garden map"><span aria-hidden="true">🗺️</span>Map</button>
+        <button data-go="almanac" aria-label="Almanac"><span aria-hidden="true">📖</span>Almanac</button>
+        <button data-go="shop" aria-label="Shop"><span aria-hidden="true">🛒</span>Shop</button>
+        <button data-go="settings" aria-label="Settings"><span aria-hidden="true">⚙️</span>Settings</button>
       </nav>
     </div>
-  </section>`, (r) => {
+  </section>`);
+}
+
+/** Everything that isn't on Home: big, friendly tiles. */
+export function moreScreen(game) {
+  const p = game.profile;
+  const f = features(p);
+  const req = ensureRequests(p, game.today(), new Set(Object.keys(f).filter((k) => f[k].open)));
+  const tile = (go, icon, label, feat) => {
+    const open = !feat || f[feat].open;
+    return `<button class="more-tile ${open ? '' : 'locked'}" ${open ? `data-go="${go}"` : 'disabled'}><span class="icon" aria-hidden="true">${icon}</span><b>${label}</b>${open ? '' : `<small>${esc(f[feat].why)}</small>`}</button>`;
+  };
+  const others = listProfiles().profiles.filter((x) => x.onboarded && x.id !== p.id).length;
+  return mount(game, `<section class="screen center" aria-label="More games">
+    <div class="card wide more">
+      <header class="row"><h2>More games</h2><button class="btn" data-go="home">Back</button></header>
+      <details class="requests"><summary><b>Pip's Requests</b> <small>${req.list.filter((r) => r.done).length} of 3 done this week</small></summary>
+        <ul>${req.list.map((r) => `<li class="${r.done ? 'done' : ''}"><span class="check small" aria-hidden="true"></span>${esc(r.text)} <small>${r.done ? 'done!' : `${r.progress}/${r.goal}`}</small></li>`).join('')}</ul>
+      </details>
+      <div class="more-grid">
+        ${tile('lesson', '🌱', 'Sprout Lesson')}
+        ${tile('race', '🐝', 'Bee Race', 'race')}
+        ${tile('relay', '🦋', 'Family Relay', 'relay')}
+        ${tile('words', '🌼', 'Garden Words', 'words')}
+        ${tile('stories', '📚', 'Story Seeds', 'story')}
+        ${tile('greenhouse', '🪴', 'Greenhouse', 'greenhouse')}
+        ${tile('islamic', '🌙', 'Islamic Life', 'islamic')}
+        ${tile('journal', '📜', 'Journal')}
+        ${others ? tile('visit', '🏡', 'Visit a garden') : ''}
+        <button class="more-tile" data-act="postcard"><span class="icon" aria-hidden="true">🖼️</span><b>Postcard</b></button>
+      </div>
+    </div></section>`, (r) => {
     r.querySelector('[data-act="postcard"]').addEventListener('click', async () => {
       try {
         const url = await game.scene.postcard(`${p.garden}, by ${p.name}`);
@@ -204,7 +215,7 @@ export function mapScreen(game) {
 }
 
 // ── Results ──────────────────────────────────────────────────────────────────
-const TITLES = { garden: 'Bed planted!', daily: 'Garden watered!', lesson: 'Lesson done!', race: 'Race finished!', story: 'Page typed!', greenhouse: 'Trays labelled!', harvest: 'What a harvest!' };
+const TITLES = { path: 'Path complete!', garden: 'Bed planted!', daily: 'Garden watered!', lesson: 'Lesson done!', race: 'Race finished!', story: 'Page typed!', greenhouse: 'Trays labelled!', harvest: 'What a harvest!' };
 
 export function resultsScreen(game, { run, report, pip }) {
   const p = game.profile;
@@ -260,6 +271,7 @@ export function resultsScreen(game, { run, report, pip }) {
         </figure>
         <div class="res-nums">
           <p><span class="label">Accuracy</span><b>${Math.round(run.accuracy * 100)}%</b></p>
+          <p><span class="label">Stars</span><b>⭐ +${run.stars || 0}</b></p>
           <p><span class="label">Dewdrops</span><b>+${report.dew}</b></p>
           <p class="small muted">Dewdrops grow with accuracy, so careful typing earns more.</p>
         </div>
@@ -362,6 +374,8 @@ export function settingsScreen(game) {
       <h3>Pace and motion</h3>
       <div class="chips">${radio('pace', 'calm', 'Extra calm')}${radio('pace', 'normal', 'Normal')}${radio('pace', 'breezy', 'Breezy (faster)')}</div>
       <label class="check"><input type="checkbox" data-bool="reducedMotion" ${game.reducedMotion() ? 'checked' : ''}> Reduce motion</label>
+      <h3>Keyboard helper</h3>
+      <div class="chips">${radio('keyboard', 'show', 'Show the keyboard')}${radio('keyboard', 'hide', 'Hide it')}</div>
       <h3>Gardeners</h3>
       <div class="row"><button class="btn" data-go="profiles">Switch or add a gardener</button><button class="btn" data-go="parent">Parent Corner</button></div>
     </div></section>`, (root) => {

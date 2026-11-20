@@ -21,6 +21,12 @@ npm test           # unit tests
   keyboard hint fades as accuracy grows and lights Shift for capitals.
 - Seed Test placement, Sprout Lessons, Daily Watering (2 min, weakest keys).
 
+**Typing Path** (the big Start button): rounds of 7–10 small words, then a sentence that reuses
+some of them (153 original sentences, each available from the stage whose letters it needs).
+Every word and sentence earns **Stars** with a short "well done" cheer; Stars only go up and show
+under each gardener (ready for badges and a leaderboard). The on-screen keyboard is always shown
+with the next key highlighted, including in Garden Play (hide it in Settings).
+
 **Four seasons, 32 beds** (Spring home row · Summer top row · Autumn bottom row · Winter capitals
 and punctuation). Garden Play: words drift by; typing one plants it; nothing is ever lost (missed
 words go to the compost and come back). Bloom Chain music layers at 5 / 10 / 20 / 30 clean words,

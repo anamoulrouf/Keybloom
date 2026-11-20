@@ -8,7 +8,7 @@ export function profilesScreen(game) {
   const { profiles } = listProfiles();
   const root = el(`<section class="screen center" aria-label="Gardeners"><div class="card narrow">
     <header class="row"><h2>Who's gardening?</h2><button class="btn" data-act="back">Back</button></header>
-    <ul class="profiles">${profiles.map((p) => `<li><button class="btn ${p.id === game.profile.id ? 'primary' : ''}" data-id="${p.id}"><b>${esc(p.name || 'New gardener')}</b> <small>${esc(p.garden || '')}</small></button></li>`).join('')}</ul>
+    <ul class="profiles">${profiles.map((p) => `<li><button class="btn ${p.id === game.profile.id ? 'primary' : ''}" data-id="${p.id}"><b>${esc(p.name || 'New gardener')}</b> <small>${esc(p.garden || '')}</small><span class="pstars">⭐ ${p.stars}</span></button></li>`).join('')}</ul>
     ${profiles.length < MAX_PROFILES ? '<button class="btn" data-act="add">+ A new gardener</button>' : `<p class="small muted">${MAX_PROFILES} gardeners is the most this computer can hold.</p>`}
     <p class="small muted">Each gardener has their own garden, keys and progress. Everything stays on this computer.</p>
   </div></section>`);
@@ -34,7 +34,7 @@ export function visitScreen(game, { id } = {}) {
   function chooser() {
     root.className = 'screen center';
     root.innerHTML = `<div class="card narrow"><header class="row"><h2>Visit a garden</h2><button class="btn" data-act="home">Back</button></header>
-      <ul class="profiles">${others.map((p) => `<li><button class="btn" data-id="${p.id}"><b>${esc(p.name)}</b> <small>${esc(p.garden)}</small></button></li>`).join('')}</ul></div>`;
+      <ul class="profiles">${others.map((p) => `<li><button class="btn" data-id="${p.id}"><b>${esc(p.name)}</b> <small>${esc(p.garden)}</small><span class="pstars">⭐ ${p.stars}</span></button></li>`).join('')}</ul></div>`;
     root.querySelector('[data-act="home"]').addEventListener('click', () => game.go('home'));
     root.querySelectorAll('[data-id]').forEach((b) => b.addEventListener('click', () => visit(b.dataset.id)));
     root.querySelector('[data-id]')?.focus();
@@ -47,6 +47,7 @@ export function visitScreen(game, { id } = {}) {
     root.className = 'screen visit';
     root.innerHTML = `<div class="card visit-card">
       <h2>${esc(other.garden)}</h2>
+      <p class="pstars-line">⭐ ${other.stars || 0} stars</p>
       <p class="muted">${esc(other.name)}'s garden: ${other.homeGarden.plants.length} plants, ${other.visitorsSeen.length} visitors, best speed ${other.bestWpm || 0} WPM.</p>
       <form class="note-form"><label>Leave a note on ${esc(other.name)}'s garden sign
         <input name="note" maxlength="80" autocomplete="off" placeholder="Your sunflowers are SO tall!"></label>

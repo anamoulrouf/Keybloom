@@ -21,9 +21,10 @@ import { sandboxMode } from './modes/sandbox.js';
 import { harvestMode } from './modes/harvest.js';
 import { greenhouseMode } from './modes/greenhouse.js';
 import { islamicScreen, islamicLesson } from './modes/islamic.js';
+import { pathMode } from './modes/path.js';
 import {
   titleScreen, welcomeScreen, sitScreen, homeScreen, mapScreen, resultsScreen,
-  almanacScreen, journalScreen, shopScreen, settingsScreen, endingScreen, touchScreen,
+  almanacScreen, journalScreen, shopScreen, settingsScreen, endingScreen, touchScreen, moreScreen,
 } from './ui/screens.js';
 import { parentScreen } from './ui/parent.js';
 import { profilesScreen, visitScreen } from './ui/profiles.js';
@@ -45,8 +46,26 @@ let playMsThisSession = 0;
 let breakNudged = false;
 let capsWarnAt = 0;
 
+let starsThisRun = 0;
+const starsHud = el('<div id="stars-hud" class="stars-hud" aria-label="Stars"><span aria-hidden="true">⭐</span> <b></b></div>');
+document.body.appendChild(starsHud);
+function showStars() {
+  starsHud.querySelector('b').textContent = profile.stars || 0;
+}
+
 const game = {
   profile, scene, audio, app,
+  /** Stars only go up. Saved shortly after, so leaving mid-run never loses them. */
+  addStars(n) {
+    if (!n) return;
+    profile.stars = (profile.stars || 0) + n;
+    starsThisRun += n;
+    showStars();
+    starsHud.classList.remove('bump');
+    void starsHud.offsetWidth;
+    starsHud.classList.add('bump');
+    persistSoon();
+  },
   persist: () => save(profile),
   today: () => dayNumber(),
   go,
@@ -72,6 +91,8 @@ const SCREENS = {
   map: () => mapScreen(game),
   garden: (args) => gardenMode(game, args),
   lesson: () => lessonMode(game),
+  path: () => pathMode(game),
+  more: () => moreScreen(game),
   daily: () => dailyMode(game),
   race: () => beeRaceMode(game),
   relay: () => relayMode(game),
@@ -92,6 +113,8 @@ const SCREENS = {
   ending: () => endingScreen(game),
 };
 
+const PLAY_SCREENS = new Set(['garden', 'lesson', 'daily', 'path', 'race', 'relay', 'story', 'words', 'harvest', 'greenhouse', 'islamic-lesson']);
+
 function go(name, args = {}) {
   closePause();
   current?.destroy?.();
@@ -100,7 +123,10 @@ function go(name, args = {}) {
   if (name !== 'visit') restoreOwnGarden();
   // Islamic Life is calm and music-free: only nature sounds and soft clicks.
   audio.setQuiet(name.startsWith('islamic') || (name === 'results' && args.run?.mode === 'islamic'));
+  if (PLAY_SCREENS.has(name)) starsThisRun = 0;
   current = SCREENS[name](args);
+  document.body.classList.toggle('show-stars-hud', PLAY_SCREENS.has(name));
+  showStars();
   if (!current?.isPlay && name !== 'harvest') scene.setWeather(null);
   if (name === 'home') homeGreeting();
 }
@@ -237,6 +263,8 @@ function record(run) {
 }
 
 function finish(run) {
+  game.addStars(5); // finishing a bed or a session
+  run.stars = starsThisRun;
   const report = record(run);
   let pip = null;
   const breakMs = (profile.settings.breakMins || 0) * 60 * 1000;

@@ -12,7 +12,7 @@ const HISTORY_CAP = 365;
 export function defaultSettings() {
   return {
     master: 0.8, music: 0.5, sfx: 0.7, nature: 0.45, natureOn: true, muted: false,
-    font: 'atkinson', textSize: 1, reducedMotion: null, pace: 'normal', breakMins: 20,
+    font: 'atkinson', textSize: 1, reducedMotion: null, pace: 'normal', breakMins: 20, keyboard: 'show',
   };
 }
 
@@ -27,6 +27,7 @@ export function createProfile(today = dayNumber()) {
     learner: createLearner(),
     progress: { spring: [], summer: [], autumn: [], winter: [] },
     dewdrops: 0,
+    stars: 0,
     homeGarden: { plants: [], nextId: 0 },
     decor: [],
     meadow: [],
@@ -143,7 +144,7 @@ export function save(profile, storage = globalThis.localStorage) {
 export function listProfiles(storage = globalThis.localStorage) {
   const store = safeStore(storage);
   if (!store) return { active: null, profiles: [] };
-  return { active: store.profiles[store.active]?.id, profiles: store.profiles.map((p) => ({ id: p.id, name: p.name, garden: p.garden, onboarded: p.onboarded })) };
+  return { active: store.profiles[store.active]?.id, profiles: store.profiles.map((p) => ({ id: p.id, name: p.name, garden: p.garden, onboarded: p.onboarded, stars: p.stars || 0 })) };
 }
 
 export function getProfile(id, storage = globalThis.localStorage) {

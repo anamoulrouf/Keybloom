@@ -83,6 +83,7 @@ function report(p, today) {
       : `Accuracy is steady (${Math.round(avgAcc * 100)}%). Keep going with Garden Play at the target of ${p.learner.targetWpm} WPM; the Bee Race helps build speed. Keys to watch: ${weak.join(' ')}.`;
   return `
     <div class="pc-summary">
+      <p><span class="label">Stars</span><b>⭐ ${p.stars || 0}</b></p>
       <p><span class="label">Best speed</span><b>${p.bestWpm || 0} WPM</b></p>
       <p><span class="label">Target speed</span><b>${p.learner.targetWpm} WPM</b></p>
       <p><span class="label">Keys learned</span><b>${unlockedKeys(p.learner).filter((k) => /[a-z]/.test(k)).length} of 26</b></p>
