@@ -58,18 +58,16 @@ export function pendingHarvest(profile) {
 export const allLetters = (profile) => profile.learner.groupsUnlocked >= KEY_GROUPS.length;
 
 /** Which extra modes are open, with a friendly reason when they are not. */
+/**
+ * The extra games. All of them are open from the start: games that use letters a child hasn't
+ * learned yet still work, with the keyboard highlighting every key. (Kept as a table so a game
+ * could be gated again later with a friendly reason.)
+ */
 export function features(profile) {
-  const recent = profile.history.slice(-RACE_UNLOCK_RUNS);
-  const steady = recent.length >= RACE_UNLOCK_RUNS && recent.reduce((a, h) => a + h.acc, 0) / recent.length >= 0.9;
-  const f = {
-    race: { open: !!profile.ghost && steady, why: !profile.ghost ? 'Plant a bed in Garden Play first, so the bee has your run to copy.' : 'Opens when your last 5 runs average 90% accuracy.' },
-    relay: { open: !!profile.placed, why: 'Finish the Seed Test first.' },
-    words: { open: seasonOpen(profile, 'summer'), why: 'Opens in Summer.' },
-    story: { open: allLetters(profile) || seasonOpen(profile, 'winter'), why: 'Opens when you have every letter.' },
-    greenhouse: { open: allLetters(profile), why: 'Opens when you have every letter.' },
-    islamic: { open: allLetters(profile), why: 'Opens when you have every letter.' },
+  const open = (why = '') => ({ open: true, why });
+  return {
+    race: open(), relay: open(), words: open(), story: open(), greenhouse: open(), islamic: open(),
   };
-  return f;
 }
 
 export function featureSet(profile) {

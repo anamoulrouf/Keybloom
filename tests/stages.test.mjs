@@ -20,6 +20,7 @@ import { isBlockedWord } from '../src/data/words/blocklist.js';
 import { plantSVG } from '../src/scene/plant-gen.js';
 import { meadowArt, meadowLayout } from '../src/scene/meadow.js';
 import { VISITORS, visitorArt } from '../src/scene/visitors.js';
+import { targetGhost, ghostChars } from '../src/modes/bee-race.js';
 import { visitorsFor } from '../src/core/progress.js';
 
 function memoryStorage() {
@@ -218,17 +219,16 @@ test('autumn and winter visitors come for the right plants', () => {
   assert.ok(!v.includes('fox'));
 });
 
-test('features unlock with progress and explain why when locked', () => {
-  const p = createProfile(1);
-  let f = features(p);
-  assert.ok(!f.race.open && f.race.why);
-  assert.ok(!f.words.open && !f.story.open);
-  p.ghost = { wpm: 20, keyTimes: [] };
-  for (let i = 0; i < 5; i++) p.history.push({ acc: 0.93 });
-  p.placedSeason = 'summer';
-  p.learner.groupsUnlocked = KEY_GROUPS.length;
-  f = features(p);
-  assert.ok(f.race.open && f.words.open && f.story.open && f.greenhouse.open);
+test('every game is open from the start, even for a brand-new gardener', () => {
+  const f = features(createProfile(1));
+  for (const k of ['race', 'relay', 'words', 'story', 'greenhouse', 'islamic']) assert.ok(f[k].open, k);
+});
+
+test('Bee Race without a run of your own flies at your target speed', () => {
+  const g = targetGhost(12);
+  assert.equal(g.wpm, 12);
+  assert.equal(ghostChars(g.keyTimes, 60000), 60, '12 WPM = 60 characters a minute');
+  assert.equal(ghostChars(g.keyTimes, 0), 0);
 });
 
 test('profiles: up to 4 gardeners share a save, switch, delete and import', () => {

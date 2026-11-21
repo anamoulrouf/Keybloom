@@ -8,6 +8,12 @@ import { visitorArt } from '../scene/visitors.js';
 
 const BUTTERFLY = '<g class="bob"><path d="M0 0 C -24 -26, -30 6, -4 4 C -22 22, -6 28, 0 6 C 6 28, 22 22, 4 4 C 30 6, 24 -26, 0 0Z" fill="#F4BFD8"/><path d="M0 -4 v14" stroke="#7A5A44" stroke-width="2.5" stroke-linecap="round"/></g>';
 
+/** A steady bee at a given speed: one character every (60 000 / (wpm × 5)) ms. */
+export function targetGhost(wpm) {
+  const ms = 60000 / (Math.max(4, wpm) * 5);
+  return { wpm, keyTimes: Array.from({ length: 200 }, (_, i) => Math.round((i + 1) * ms)) };
+}
+
 /** How many characters the ghost has typed after `clockMs` of active time. */
 export function ghostChars(keyTimes, clockMs) {
   let lo = 0, hi = keyTimes.length;
@@ -22,7 +28,8 @@ export function ghostChars(keyTimes, clockMs) {
 export function beeRaceMode(game) {
   const { profile } = game;
   const learner = profile.learner;
-  const ghost = profile.ghost;
+  // Until the child has a run of their own, the bee flies steadily at their target speed.
+  const ghost = profile.ghost || targetGhost(learner.targetWpm);
   const rng = mulberry32(Date.now() >>> 0);
   const raceLen = Math.max(40, Math.min(ghost.keyTimes.length, 150));
   const lines = [];
@@ -40,7 +47,9 @@ export function beeRaceMode(game) {
   const runner = lineRunner(game, {
     mode: 'race',
     title: 'Bee Race',
-    subtitle: `The bee flies at your best Garden Play pace (${Math.round(ghost.wpm)} WPM). It waits for your first key. Careful keys are the fast ones!`,
+    subtitle: profile.ghost
+      ? `The bee flies at your best pace (${Math.round(ghost.wpm)} WPM). It waits for your first key.`
+      : `The bee flies at your target speed (${Math.round(ghost.wpm)} WPM). It waits for your first key.`,
     keyboard: 'stage',
     trackHTML: `<div class="race-track" aria-hidden="true">${lane('bee-lane', visitorArt('bee'))}${lane('you-lane', BUTTERFLY)}<i class="finish-flower"></i></div>`,
     nextLine: (i) => (i < lines.length ? lines[i] : null),

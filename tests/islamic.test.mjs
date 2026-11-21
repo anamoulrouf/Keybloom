@@ -87,10 +87,8 @@ test('wrapText never breaks a word and keeps every word in order', () => {
   assert.deepEqual(wrapText('one', 48), ['one']);
 });
 
-test('Islamic Life opens with every letter and records progress per track', () => {
+test('Islamic Life is open from the start and records progress per track', () => {
   const p = createProfile(1);
-  assert.ok(!features(p).islamic.open);
-  p.learner.groupsUnlocked = KEY_GROUPS.length;
   assert.ok(features(p).islamic.open);
   const run = { mode: 'islamic', wpm: 15, accuracy: 0.96, correct: 200, minutes: 3 };
   finishRun(p, { ...run, track: 'names', lesson: 0 }, 10);
